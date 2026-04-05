@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>THE DIVORCE GAME</title>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400&display=swap');
 
@@ -80,7 +83,7 @@
 
   #intro h1 {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(3.5rem, 11vw, 9rem);
+    font-size: clamp(5rem, 22vw, 9rem);
     line-height: 0.88;
     letter-spacing: -0.02em;
     opacity: 0;
@@ -128,6 +131,132 @@
   }
 
   .begin-btn:hover { background: var(--red); color: var(--white); }
+
+  .pair-btn {
+    display: inline-block;
+    margin-top: 0.75rem;
+    background: transparent;
+    color: var(--mid);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    padding: 0.7rem 2.5rem;
+    border: 1px solid var(--dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
+    animation: fadeUp 0.8s ease forwards 1.1s;
+  }
+
+  .pair-btn:hover { border-color: var(--white); color: var(--white); }
+
+  /* ── PAIRING SCREENS ── */
+  #pairing, #join-screen, #waiting {
+    min-height: 100vh;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 3rem;
+    max-width: 680px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .pairing-label {
+    font-size: 0.55rem;
+    letter-spacing: 0.45em;
+    color: var(--red);
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+
+  .code-display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 15vw, 8rem);
+    letter-spacing: 0.15em;
+    color: var(--white);
+    line-height: 1;
+    margin: 1.5rem 0;
+  }
+
+  .code-instruction {
+    font-size: 0.7rem;
+    color: var(--mid);
+    line-height: 1.8;
+    max-width: 400px;
+    margin-bottom: 2.5rem;
+  }
+
+  .code-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--dim);
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 0.3em;
+    width: 8rem;
+    outline: none;
+    padding: 0.5rem 0;
+    text-transform: uppercase;
+    transition: border-color 0.3s;
+    margin-bottom: 2rem;
+  }
+
+  .code-input:focus { border-bottom-color: var(--gold); }
+  .code-input::placeholder { color: var(--dim); }
+
+  .pair-action-btn {
+    display: inline-block;
+    background: var(--white);
+    color: var(--black);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.2em;
+    padding: 0.8rem 2rem;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    margin-right: 1rem;
+  }
+
+  .pair-action-btn:hover { background: var(--red); color: var(--white); }
+
+  .pair-back-btn {
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--mid);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .pair-back-btn:hover { border-color: var(--white); color: var(--white); }
+
+  .pair-error {
+    font-size: 0.65rem;
+    color: var(--red);
+    letter-spacing: 0.1em;
+    margin-top: 1rem;
+    min-height: 1.2em;
+  }
+
+  /* ── PAIRED RESULT ── */
+  .fractures-section {
+    margin-top: 2rem;
+  }
+
+  .fracture-mine {
+    border-left: 1px solid var(--gold);
+  }
+
+  .fracture-theirs {
+    border-left: 1px solid var(--dim);
+    opacity: 0.7;
+  }
 
   /* ── PROGRESS BAR ── */
   .progress-wrap {
@@ -497,7 +626,39 @@
     Answer alone. Answer honestly.<br>
     There are no correct answers — only yours.
   </div>
-  <button class="begin-btn" onclick="startQuiz()">Begin</button>
+  <button class="begin-btn" onclick="startQuiz('solo')">Begin alone</button>
+  <button class="pair-btn" onclick="showPairing()">Start a partner game →</button>
+  <button class="pair-btn" style="margin-top:0.25rem;" onclick="show('join-screen')">Join a partner game →</button>
+</div>
+
+<!-- PAIRING — create a game -->
+<div id="pairing" class="screen">
+  <div class="pairing-label">Paired mode</div>
+  <div class="code-instruction">Share this code with your partner. Each of you will answer separately. Neither of you will see the other's answers. Results are revealed only when both are done.</div>
+  <div class="code-display" id="generatedCode">—</div>
+  <div class="code-instruction" style="margin-top:0.5rem; color: #555;">Your partner enters this code to begin.</div>
+  <div style="display:flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+    <button class="pair-action-btn" onclick="startQuiz('paired-a')">Begin my session →</button>
+    <button class="pair-back-btn" onclick="show('intro')">← Back</button>
+  </div>
+</div>
+
+<!-- JOIN — enter a code -->
+<div id="join-screen" class="screen">
+  <div class="pairing-label">Join a game</div>
+  <div class="code-instruction">Enter the code your partner shared with you.</div>
+  <input class="code-input" id="joinCodeInput" maxlength="4" placeholder="····" oninput="this.value=this.value.toUpperCase()">
+  <div class="pair-error" id="joinError"></div>
+  <div style="display:flex; gap: 0.75rem; flex-wrap: wrap;">
+    <button class="pair-action-btn" onclick="joinGame()">Join →</button>
+    <button class="pair-back-btn" onclick="show('intro')">← Back</button>
+  </div>
+</div>
+
+<!-- WAITING — person A waits for person B -->
+<div id="waiting" class="screen">
+  <div class="generating-label">Reading</div>
+  <div class="dots"><span></span><span></span><span></span></div>
 </div>
 
 <!-- QUIZ -->
@@ -531,7 +692,31 @@
 </div>
 
 <script>
-// ── QUESTIONS ──
+// ── FIREBASE CONFIG ──
+// Replace with your own Firebase project config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+let db = null;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+} catch(e) {
+  console.warn('Firebase not configured — paired mode unavailable');
+}
+
+// ── PAIRING STATE ──
+let gameMode = 'solo'; // 'solo' | 'paired-a' | 'paired-b'
+let gameCode = null;
+let myRole = null; // 'a' | 'b'
+let waitingListener = null;
 const questions = [
   // Phase 1 — Unaware disclosure
   { q: "What did you eat yesterday, and why that?", type: "text", placeholder: null },
@@ -601,7 +786,7 @@ const questions = [
   {
     q: "When you have people over, who carries the weight of making it happen — before, during, and after?",
     type: "choice",
-    choices: ["Almost always me", "Usually me", "It depends who initiated it", "Usually them", "Almost always them"]
+    choices: ["Almost always me", "Usually me", "It shifts — there's no consistent pattern", "Usually them", "Almost always them"]
   },
   {
     q: "When you support your partner through something difficult, how often do you feel that's recognised?",
@@ -614,7 +799,7 @@ const questions = [
     choices: ["Almost always me", "Usually me", "It depends on the friendship", "Usually them", "Almost always them"]
   },
   {
-    q: "Who does more of the relational work when you're together in a group?",
+    q: "When you're in a social situation together, who works harder to make it go well?",
     type: "choice",
     choices: ["Almost always me", "Usually me", "It depends who's there", "Usually them", "Almost always them"]
   },
@@ -748,7 +933,69 @@ function show(id) {
   document.getElementById(id).classList.add('active');
 }
 
-function startQuiz() {
+// ── PAIRING FUNCTIONS ──
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+}
+
+function showPairing() {
+  if (!db) {
+    alert('Paired mode requires Firebase configuration. See comments in the source.');
+    return;
+  }
+  gameCode = generateCode();
+  myRole = 'a';
+  gameMode = 'paired-a';
+  document.getElementById('generatedCode').textContent = gameCode;
+  // Reserve the code in Firebase
+  db.ref(`games/${gameCode}`).set({ created: Date.now(), status: 'waiting' });
+  show('pairing');
+}
+
+function joinGame() {
+  const code = document.getElementById('joinCodeInput').value.trim().toUpperCase();
+  const err = document.getElementById('joinError');
+  err.textContent = '';
+
+  if (code.length !== 4) {
+    err.textContent = 'Enter a 4-character code.';
+    return;
+  }
+
+  if (!db) {
+    err.textContent = 'Paired mode requires Firebase configuration.';
+    return;
+  }
+
+  db.ref(`games/${code}`).once('value').then(snap => {
+    const data = snap.val();
+    if (!data) {
+      err.textContent = 'Code not found.';
+      return;
+    }
+    if (data.status === 'complete') {
+      err.textContent = 'This game is already finished.';
+      return;
+    }
+    if (data.answerB) {
+      err.textContent = 'A partner has already joined this game.';
+      return;
+    }
+    gameCode = code;
+    myRole = 'b';
+    gameMode = 'paired-b';
+    startQuiz('paired-b');
+  }).catch(() => {
+    err.textContent = 'Something went wrong. Try again.';
+  });
+}
+
+function startQuiz(mode) {
+  gameMode = mode || 'solo';
   const hasSaved = load();
   show('quiz');
   document.getElementById('qTotal').textContent = TOTAL;
@@ -919,6 +1166,14 @@ function prevQ() {
 }
 
 async function generate() {
+  if (gameMode === 'paired-a' || gameMode === 'paired-b') {
+    await generatePaired();
+  } else {
+    await generateSolo();
+  }
+}
+
+async function generateSolo() {
   show('generating');
 
   // Collect timing and values
@@ -1097,12 +1352,240 @@ function restart() {
   scaleValues = new Array(TOTAL).fill(5);
   timestamps = new Array(TOTAL).fill(null);
   backLocked = false;
+  gameMode = 'solo';
+  gameCode = null;
+  myRole = null;
+  if (waitingListener) { waitingListener(); waitingListener = null; }
   clearStorage();
-  ['resultHeadline','resultBody','divider1','divider2','divider3','finalQuestion','restartBtn'].forEach(id => {
+  ['resultHeadline','resultBody','divider1','divider2','divider3','finalQuestion','restartBtn',
+   'fracturesLabel','fracturesBody'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.classList.remove('visible');
+    if (el) { el.classList.remove('visible'); el.style.display = ''; }
   });
   show('intro');
+}
+
+// ── PAIRED MODE ──
+
+function buildQaPairs(answersArr) {
+  const times = answersArr.map(a => (typeof a === 'object' && a !== null && a.ms) ? a.ms : null);
+  const validTimes = times.filter(t => t !== null);
+  const avg = validTimes.length ? validTimes.reduce((a,b) => a+b, 0) / validTimes.length : 10000;
+
+  return questions.map((q, i) => {
+    const a = answersArr[i];
+    const val = (typeof a === 'object' && a !== null) ? (a.value || '') : (a || '');
+    const ms = (typeof a === 'object' && a !== null && a.ms) ? a.ms : null;
+    const cleaned = val.trim().toLowerCase();
+    let tags = [];
+    const isEmpty = !cleaned;
+    const isDeflection = !isEmpty && ['idk','not sure','unsure','dunno','n/a','nothing','idk really'].includes(cleaned);
+    if (isEmpty) { tags = ['[empty]']; }
+    else if (isDeflection) { tags = ['[deflection]']; }
+    else {
+      const edits = (typeof a === 'object' && a !== null && a._edits) ? a._edits : 0;
+      const maxLen = (typeof a === 'object' && a !== null && a._maxLen) ? a._maxLen : cleaned.length;
+      if (maxLen > 50 && cleaned.length < 15) { tags = ['[reduced]']; }
+      else {
+        if (edits > 2) tags.push('[edited repeatedly]');
+        if (ms !== null) {
+          if (ms > avg * 1.5) tags.push('[took a long time]');
+          else if (ms < avg * 0.6 && cleaned.length > 40) tags.push('[fluent]');
+          else if (ms < avg * 0.6) tags.push('[answered quickly]');
+        }
+        if (tags.length === 0) {
+          if (cleaned.length < 4) tags.push('[very short]');
+          else if (cleaned.length < 12) tags.push('[minimal]');
+        }
+        if (tags.length === 0) tags.push('[controlled]');
+      }
+    }
+    const tagStr = tags.length ? ' ' + tags.join(' ') : '';
+    const display = val || '[no answer given]';
+    return `Q${i+1}: ${q.q}\nA: ${display}${tagStr}`;
+  }).join('\n\n');
+}
+
+async function generatePaired() {
+  // Save my answers to Firebase
+  show('generating');
+
+  const myAnswers = JSON.parse(JSON.stringify(answers));
+  const roleKey = myRole === 'a' ? 'answerA' : 'answerB';
+
+  try {
+    await db.ref(`games/${gameCode}/${roleKey}`).set(myAnswers);
+
+    // Check if partner is already done
+    const snap = await db.ref(`games/${gameCode}`).once('value');
+    const gameData = snap.val();
+    const partnerKey = myRole === 'a' ? 'answerB' : 'answerA';
+
+    if (gameData[partnerKey]) {
+      // Partner already finished — generate now
+      await runPairedGeneration(myAnswers, gameData[partnerKey]);
+    } else {
+      // Wait for partner
+      show('waiting');
+      waitingListener = db.ref(`games/${gameCode}/${partnerKey}`).on('value', async (partnerSnap) => {
+        const partnerAnswers = partnerSnap.val();
+        if (partnerAnswers) {
+          if (waitingListener) { db.ref(`games/${gameCode}/${partnerKey}`).off('value', waitingListener); waitingListener = null; }
+          show('generating');
+          await runPairedGeneration(myAnswers, partnerAnswers);
+        }
+      });
+    }
+  } catch(err) {
+    showResult('—', 'Something went wrong. Try again.', '');
+  }
+}
+
+async function runPairedGeneration(myAnswers, partnerAnswers) {
+  const qaPairs_A = myRole === 'a' ? buildQaPairs(myAnswers) : buildQaPairs(partnerAnswers);
+  const qaPairs_B = myRole === 'a' ? buildQaPairs(partnerAnswers) : buildQaPairs(myAnswers);
+
+  const pairedPrompt = `You have received two independent sets of responses to the same questionnaire. They were completed separately, without knowledge of each other. The two people who completed them are in a relationship together.
+
+Do not treat these as two individuals. Treat them as two partial descriptions of the same system.
+
+Your task is to describe that system.
+
+Rules:
+
+1. Never attribute a claim to either person by name, label, or implied position. The output must read as if the relationship itself is being described.
+
+2. Look for structural patterns, not personal failings. What is distributed unevenly? What is invisible to one side? What is named differently by each person but refers to the same reality?
+
+3. When answers diverge, do not frame them as two sides. Do not write "one… the other…". Describe the gap itself as the structure. The relationship contains both conditions at once.
+
+4. When answers align, do not treat alignment as agreement. Examine who benefits from that alignment and who absorbs the cost.
+
+5. Pay particular attention to patterns such as — but not limited to: labour without recognition; narrative authority — whose version of events functions as default; exit asymmetry — who carries more structural dependency; self-image versus experienced behaviour — where one person's account of themselves contradicts the other's account of them.
+
+6. Do not use balancing language. Avoid phrases that present the relationship as symmetrical, even, or resolved.
+
+7. Do not infer causality. Describe patterns, not explanations.
+
+8. If a sentence could apply to most relationships, remove it.
+
+9. Do not moralise. Do not prescribe. Do not suggest what should change. Describe only what is.
+
+10. Tone: observational, precise, cold without cruelty. It should feel like something neither person could have written about themselves or each other.
+
+PERSON A RESPONSES:
+${qaPairs_A}
+
+PERSON B RESPONSES:
+${qaPairs_B}
+
+Output format — exactly:
+
+HEADLINE: [3–6 words. Names the structure, not the feeling. Not a diagnosis. Not a consolation.]
+
+RELATIONSHIP PORTRAIT:
+[400–600 words. No singular "you". No attribution. Describes the system as a single field. Names asymmetries without assigning fault. States contradictions without resolving them. Never balances. Never explains.]
+
+---
+
+FRACTURES FOR A:
+[2–3 short blocks. Each identifies a mismatch between Person A's self-description and how Person B experiences them — or vice versa. No labels. No softening. Each should feel slightly uncomfortable to read. Two to four sentences maximum per block. Do not describe personality. Only describe mismatches between what is claimed and what is experienced.]
+
+FRACTURES FOR B:
+[2–3 short blocks. Same format. Addressed implicitly to Person B.]
+
+---
+
+SHARED FINAL LINE:
+[Maximum 12 words. Not a question. Not therapeutic. Must reference a pattern visible in both sets of answers. Do not repeat language from the headline. Points outward. The last thing said before a door closes.]`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: pairedPrompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(b => b.text || '').join('');
+
+    const headlineMatch = text.match(/HEADLINE:\s*(.+)/i);
+    const portraitMatch = text.match(/RELATIONSHIP PORTRAIT:\s*([\s\S]+?)(?=---|FRACTURES FOR A:|$)/i);
+    const fracturesAMatch = text.match(/FRACTURES FOR A:\s*([\s\S]+?)(?=FRACTURES FOR B:|$)/i);
+    const fracturesBMatch = text.match(/FRACTURES FOR B:\s*([\s\S]+?)(?=---|SHARED FINAL LINE:|$)/i);
+    const finalLineMatch = text.match(/SHARED FINAL LINE:\s*([\s\S]+)/i);
+
+    const headline = headlineMatch ? headlineMatch[1].trim() : '—';
+    const portrait = portraitMatch ? portraitMatch[1].trim() : text;
+    const myFractures = myRole === 'a'
+      ? (fracturesAMatch ? fracturesAMatch[1].trim() : '')
+      : (fracturesBMatch ? fracturesBMatch[1].trim() : '');
+    const theirFractures = myRole === 'a'
+      ? (fracturesBMatch ? fracturesBMatch[1].trim() : '')
+      : (fracturesAMatch ? fracturesAMatch[1].trim() : '');
+    const finalLine = finalLineMatch ? finalLineMatch[1].trim() : '';
+
+    // Mark game complete
+    db.ref(`games/${gameCode}/status`).set('complete');
+
+    showPairedResult(headline, portrait, myFractures, theirFractures, finalLine);
+
+  } catch(err) {
+    showResult('—', 'Something went wrong. Try again.', '');
+  }
+}
+
+function showPairedResult(headline, portrait, myFractures, theirFractures, finalLine) {
+  show('result');
+  const el = id => document.getElementById(id);
+
+  el('resultBody').textContent = portrait;
+  el('resultHeadline').textContent = headline;
+  el('finalQuestion').textContent = finalLine;
+  el('finalQuestion').style.display = finalLine ? '' : 'none';
+  el('divider3').style.display = 'none';
+
+  // Build fractures — mine first (gold border), theirs second (dim border)
+  let fractureHTML = '';
+  if (myFractures) {
+    myFractures.split(/\n\n+/).filter(f => f.trim()).forEach(f => {
+      fractureHTML += `<div class="fracture fracture-mine">${f.trim()}</div>`;
+    });
+  }
+  if (theirFractures) {
+    theirFractures.split(/\n\n+/).filter(f => f.trim()).forEach(f => {
+      fractureHTML += `<div class="fracture fracture-theirs">${f.trim()}</div>`;
+    });
+  }
+
+  el('fracturesBody').innerHTML = fractureHTML;
+  el('fracturesLabel').style.display = fractureHTML ? '' : 'none';
+  el('fracturesBody').style.display = fractureHTML ? '' : 'none';
+  el('divider2').style.display = fractureHTML ? '' : 'none';
+
+  // Sequence: portrait → headline → fractures → final line
+  setTimeout(() => el('resultBody').classList.add('visible'), 200);
+  setTimeout(() => {
+    el('divider1').classList.add('visible');
+    el('resultHeadline').classList.add('visible');
+  }, 2200);
+  if (fractureHTML) {
+    setTimeout(() => {
+      el('divider2').classList.add('visible');
+      el('fracturesLabel').classList.add('visible');
+      el('fracturesBody').classList.add('visible');
+    }, 3400);
+  }
+  if (finalLine) {
+    setTimeout(() => el('finalQuestion').classList.add('visible'), fractureHTML ? 4800 : 3400);
+  }
+  setTimeout(() => el('restartBtn').classList.add('visible'), finalLine ? (fractureHTML ? 5800 : 4400) : (fractureHTML ? 4800 : 3200));
+
+  clearStorage();
 }
 </script>
 </body>
